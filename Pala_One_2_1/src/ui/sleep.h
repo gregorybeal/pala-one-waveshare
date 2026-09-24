@@ -37,7 +37,13 @@ void setLockOnSleep(bool val);
 // image, releases peripherals, then `esp_deep_sleep_start`s.
 void enter();
 
-// Pause the CPU until the button is pressed or a short timer fires. Caller
+// Power the device off (PWR-button hold). Notifies the active screen, draws
+// the sleep image, flushes counters, then releases the battery latch. On USB
+// power the latch can't cut power, so it falls back to deep sleep with only
+// the PWR button as a wake source. Never returns.
+void powerOff();
+
+// Pause the CPU until a button is pressed or a short timer fires. Caller
 // passes `tightTick` = true when something needs polling within a few tens
 // of ms (mid-sequence click classifier, active toast); false otherwise (a
 // loose heartbeat — the button still wakes us instantly regardless).

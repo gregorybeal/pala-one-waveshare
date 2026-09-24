@@ -1,6 +1,7 @@
 #ifndef PALA_UI_SCREENSAVERS_H
 #define PALA_UI_SCREENSAVERS_H
 
+#include "src/config.h"                // SCREEN_W / SCREEN_H
 #include "src/pure/arduino_compat.h"  // uint8_t, size_t
 
 // ============================================================================
@@ -8,11 +9,12 @@
 //  on the e-ink before deep sleep.
 //
 //  Storage:
-//    /screensavers/0.bin … /screensavers/7.bin    rotation slots (3904 bytes each)
+//    /screensavers/0.bin … /screensavers/7.bin    rotation slots (SCREENSAVER_BYTES each)
 //    /sleep.bin                                   legacy single image (kept as fallback)
 //
-//  Each slot file is exactly SCREENSAVER_BYTES (250x122 px, 1-bit, LSB-first,
-//  32 bytes per row — same XBitmap format the e-ink driver consumes).
+//  Each slot file is exactly SCREENSAVER_BYTES (SCREEN_W x SCREEN_H px, 1-bit,
+//  LSB-first, SCREENSAVER_ROW_BYTES per row — the XBitmap format
+//  Adafruit_GFX::drawXBitmap consumes). 200x200 → 25 bytes/row, 5000 bytes.
 //
 //  Mode (NVS key `cfg_ss_mode`):
 //    Single   draw /sleep.bin if present; otherwise yield to the built-in icon
@@ -26,7 +28,13 @@
 namespace Screensavers {
 
 constexpr int MAX_SLOTS         = 8;
-constexpr int SCREENSAVER_BYTES = 3904;   // 250 * 122 / 8, 1-bit packed
+constexpr int SCREENSAVER_ROW_BYTES = (SCREEN_W + 7) / 8;
+constexpr int SCREENSAVER_BYTES     = SCREENSAVER_ROW_BYTES * SCREEN_H;  // 1-bit packed
+// The web UI copy in src/lang/ (D_WEB_SCREENSAVER_SPECS, D_WEB_SLEEP_ERR_SIZE,
+// D_WEB_SS_EDITOR_INTRO) states these numbers as literals — update it with
+// this assert if the panel ever changes.
+static_assert(SCREENSAVER_BYTES == 5000 && SCREENSAVER_ROW_BYTES == 25,
+              "screensaver size changed: update the D_WEB_* strings in src/lang/");
 
 enum class Mode : uint8_t { Single = 0, Cycle = 1, Shuffle = 2 };
 

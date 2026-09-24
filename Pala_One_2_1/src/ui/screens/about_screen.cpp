@@ -27,9 +27,7 @@ void AboutScreen::draw() {
   for (int i = 0; i < 5; i++) {
     if (i == 0) Font::useBold();
     else        Font::useBody();
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(rows[i].c_str());
-    y += lineH;
+    y = drawWrappedText(MARGIN_X, y, rows[i], lineH);
   }
 
   display.update();

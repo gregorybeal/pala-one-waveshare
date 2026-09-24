@@ -391,109 +391,81 @@ void SyncScreen::draw() {
 
   switch (phase_) {
     case Phase::NotConfigured:
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(D_SYNC_NOT_CONFIGURED_L1);
-      y += lineH;
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(D_SYNC_NOT_CONFIGURED_L2);
+      y = drawWrappedText(MARGIN_X, y, D_SYNC_NOT_CONFIGURED_L1, lineH);
+      drawWrappedText(MARGIN_X, y, D_SYNC_NOT_CONFIGURED_L2, lineH);
       break;
 
     case Phase::NoDocId:
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(D_SYNC_NO_DOC_L1);
-      y += lineH;
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(D_SYNC_NO_DOC_L2);
+      y = drawWrappedText(MARGIN_X, y, D_SYNC_NO_DOC_L1, lineH);
+      drawWrappedText(MARGIN_X, y, D_SYNC_NO_DOC_L2, lineH);
       break;
 
     case Phase::NoCreds:
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(D_SYNC_NO_CREDS);
+      drawWrappedText(MARGIN_X, y, D_SYNC_NO_CREDS, lineH);
       break;
 
     case Phase::Connecting:
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(D_SYNC_CONNECTING);
+      drawWrappedText(MARGIN_X, y, D_SYNC_CONNECTING, lineH);
       break;
 
     case Phase::ConnFailed:
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(D_SYNC_CONN_FAILED);
+      drawWrappedText(MARGIN_X, y, D_SYNC_CONN_FAILED, lineH);
       break;
 
     case Phase::Syncing:
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(D_SYNC_WORKING);
+      drawWrappedText(MARGIN_X, y, D_SYNC_WORKING, lineH);
       break;
 
     case Phase::Pushed:
       Font::useBold();
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(D_SYNC_UP_TO_DATE);
+      drawWrappedText(MARGIN_X, y, D_SYNC_UP_TO_DATE, lineH);
       Font::useBody();
       y += lineH + 2;
       snprintf(buf, sizeof(buf), D_SYNC_HERE_FMT, pctInt(localPct_));
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(buf);
+      drawWrappedText(MARGIN_X, y, buf, lineH);
       break;
 
     case Phase::Conflict: {
       // Two positions and two choices. 1x moves, 2x selects, 3x leaves —
       // the same grammar every other menu on the device uses.
       snprintf(buf, sizeof(buf), D_SYNC_OTHER_FMT, pctInt(remotePct_));
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(buf);
-      if (remoteDevice_.length() > 0) {
-        int w = u8g2.getUTF8Width(buf);
-        u8g2.setCursor(MARGIN_X + w + 4, y);
-        u8g2.print(remoteDevice_.c_str());
+      {
+        String other(buf);
+        if (remoteDevice_.length() > 0) other += " " + remoteDevice_;
+        y = drawWrappedText(MARGIN_X, y, other, lineH);
       }
-      y += lineH;
 
       snprintf(buf, sizeof(buf), D_SYNC_HERE_FMT, pctInt(localPct_));
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(buf);
-      y += lineH + 3;
+      y = drawWrappedText(MARGIN_X, y, buf, lineH + 3);
 
       if (focusItem_ == 0) Font::useBold(); else Font::useBody();
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(D_SYNC_ACTION_JUMP);
-      y += lineH;
+      y = drawWrappedText(MARGIN_X, y, D_SYNC_ACTION_JUMP, lineH);
 
       if (focusItem_ == 1) Font::useBold(); else Font::useBody();
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(D_SYNC_ACTION_KEEP);
+      drawWrappedText(MARGIN_X, y, D_SYNC_ACTION_KEEP, lineH);
       Font::useBody();
       break;
     }
 
     case Phase::Jumped:
       Font::useBold();
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(D_SYNC_JUMPED);
+      drawWrappedText(MARGIN_X, y, D_SYNC_JUMPED, lineH);
       Font::useBody();
       y += lineH + 2;
       snprintf(buf, sizeof(buf), D_SYNC_HERE_FMT, pctInt(localPct_));
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(buf);
+      drawWrappedText(MARGIN_X, y, buf, lineH);
       if (jumpedShort_) {
         // Say both halves: where it stopped, and that the other device was
         // deliberately left alone so its position is still there to go back to.
         y += lineH + 2;
-        u8g2.setCursor(MARGIN_X, y);
-        u8g2.print(D_SYNC_JUMPED_SHORT_L1);
-        y += lineH;
-        u8g2.setCursor(MARGIN_X, y);
-        u8g2.print(D_SYNC_JUMPED_SHORT_L2);
+        y = drawWrappedText(MARGIN_X, y, D_SYNC_JUMPED_SHORT_L1, lineH);
+        drawWrappedText(MARGIN_X, y, D_SYNC_JUMPED_SHORT_L2, lineH);
       }
       break;
 
     case Phase::Failed:
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(D_SYNC_FAILED);
-      y += lineH;
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(message_.c_str());
+      y = drawWrappedText(MARGIN_X, y, D_SYNC_FAILED, lineH);
+      drawWrappedText(MARGIN_X, y, message_, lineH);
       break;
   }
 

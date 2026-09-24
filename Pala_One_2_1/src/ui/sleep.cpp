@@ -10,6 +10,7 @@
 #include "src/state.h"
 #include "src/hal/display.h"
 #include "src/hal/input.h"          // injectButtonEdgeNow, markUserActivity
+#include "src/hal/power.h"          // VBAT latch + PWR button
 #include "src/storage/statistics.h" // Statistics::flushToNvs
 #include "src/ui/font.h"            // Font::useToast / Font::useBody
 #include "src/ui/lock.h"            // Lock::isLocked — gates the lock badge
@@ -107,6 +108,49 @@ static void drawSleepScreen() {
   display.update();
 }
 
+// Radios off, panel parked, counters flushed, then deep sleep with the given
+// wake sources. `latched` = keep the battery latch held on through sleep (a
+// normal sleep); false after powerOff() found itself still running on USB,
+// where only PWR should bring it back.
+static void shutDownAndSleep(bool latched) {
+  WiFi.softAPdisconnect(true);
+  WiFi.disconnect(true, true);
+  WiFi.mode(WIFI_OFF);
+  delay(100);
+  esp_wifi_stop();
+  btStop();
+
+  display.prepareToSleep();
+  esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
+
+  // INPUT_PULLUP is in the digital IO domain, which powers down in deep sleep.
+  // Route each wake button to the RTC IO mux and hold the RTC-domain pull-up
+  // so the pin doesn't float and spuriously trip the wake. rtc_gpio_init must
+  // come before pullup_en or the pull bits land on the inactive (digital) mux.
+  uint64_t wakeMask = 0;
+  const int wakePins[] = { BTN, PWR_BTN };
+  for (int pin : wakePins) {
+    if (!latched && pin != PWR_BTN) continue;
+    rtc_gpio_init((gpio_num_t)pin);
+    rtc_gpio_set_direction((gpio_num_t)pin, RTC_GPIO_MODE_INPUT_ONLY);
+    rtc_gpio_pulldown_dis((gpio_num_t)pin);
+    rtc_gpio_pullup_en((gpio_num_t)pin);
+    wakeMask |= 1ULL << pin;
+  }
+  esp_sleep_enable_ext1_wakeup_io(wakeMask, ESP_EXT1_WAKEUP_ANY_LOW);
+
+  Power::holdRailsForDeepSleep();
+
+  // Drain any RTC-RAM lifetime-counter deltas to NVS before power-down.
+  Statistics::flushToNvs();
+
+  delay(50);
+  Serial.printf("[sleep] BTN=%d PWR=%d entering deep sleep\n",
+                digitalRead(BTN), digitalRead(PWR_BTN));
+  Serial.flush();
+  esp_deep_sleep_start();
+}
+
 void enter() {
   if (!ENABLE_DEEP_SLEEP) return;
 
@@ -145,60 +189,61 @@ void enter() {
     delay(600);
   }
 
-  WiFi.softAPdisconnect(true);
-  WiFi.disconnect(true, true);
-  WiFi.mode(WIFI_OFF);
-  delay(100);
-  esp_wifi_stop();
-  btStop();
+  shutDownAndSleep(true);
+}
 
-  Platform::prepareToSleep();
-  esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
-  // INPUT_PULLUP is in the digital IO domain, which powers down in deep sleep.
-  // Route BTN to the RTC IO mux and hold the RTC-domain pull-up so the pin
-  // doesn't float and spuriously trip ext0. rtc_gpio_init must come before
-  // pullup_en or the pull bits land on the inactive (digital) mux.
-  rtc_gpio_init((gpio_num_t)BTN);
-  rtc_gpio_set_direction((gpio_num_t)BTN, RTC_GPIO_MODE_INPUT_ONLY);
-  rtc_gpio_pulldown_dis((gpio_num_t)BTN);
-  rtc_gpio_pullup_en((gpio_num_t)BTN);
-  esp_sleep_enable_ext0_wakeup((gpio_num_t)BTN, 0);
-
-  // Drain any RTC-RAM lifetime-counter deltas to NVS before power-down.
-  Statistics::flushToNvs();
-
+void powerOff() {
+  if (g_currentScreen) g_currentScreen->onSleep();
   delay(50);
-  Serial.printf("[sleep] BTN=%d entering deep sleep\n", digitalRead(BTN));
+  if (s_lockOnSleep) Lock::engage();
+  drawSleepScreen();
+  delay(600);
+
+  // Everything that must survive is in NVS before the rail goes away.
+  Statistics::flushToNvs();
+  Serial.println("[power] releasing battery latch");
   Serial.flush();
-  esp_deep_sleep_start();
+  Power::releaseLatch();
+
+  // Still running: we're on USB power, which the latch can't cut. Park in
+  // deep sleep until PWR is pressed, the closest thing to "off" available.
+  shutDownAndSleep(false);
 }
 
 void idleLightSleep(bool tightTick) {
-  // Don't sleep if the button is already pressed — would be a level-triggered
+  // Don't sleep if a button is already pressed — would be a level-triggered
   // immediate wake, burning a sleep/wake cycle for no reason and skewing
-  // the click classifier's edge timing.
-  if (digitalRead(BTN) == LOW) return;
+  // the click classifier's edge timing. (A held PWR is being timed by
+  // Power::poll for the power-off hold, which needs the loop running.)
+  if (digitalRead(BTN) == LOW || Power::isButtonDown()) return;
 
   // Tight: in a state that needs frequent polling (active toast). Loose: just
-  // a heartbeat — button presses wake us instantly via ext0 regardless of
-  // this interval. 150ms loose caps the worst-case fallback latency if a
-  // release somehow lands in the tiny residual race window between the
-  // main-loop sleep gate and `esp_light_sleep_start()`; battery cost vs. a
-  // longer interval is negligible (a few extra wake-poll-sleep cycles per
-  // second of true idle).
+  // a heartbeat — button presses wake us instantly regardless of this
+  // interval. 150ms loose caps the worst-case fallback latency if a release
+  // somehow lands in the tiny residual race window between the main-loop
+  // sleep gate and `esp_light_sleep_start()`; battery cost vs. a longer
+  // interval is negligible (a few extra wake-poll-sleep cycles per second of
+  // true idle).
   const uint64_t timerUs = tightTick ? 50ULL * 1000 : 150ULL * 1000;
 
-  esp_sleep_enable_ext0_wakeup((gpio_num_t)BTN, 0);   // wake on button-low
+  esp_sleep_enable_ext0_wakeup((gpio_num_t)BTN, 0);   // wake on BOOT-low
+  gpio_wakeup_enable((gpio_num_t)PWR_BTN, GPIO_INTR_LOW_LEVEL);
+  esp_sleep_enable_gpio_wakeup();                     // wake on PWR-low
   esp_sleep_enable_timer_wakeup(timerUs);
   esp_light_sleep_start();                            // BLOCKS until wake
   esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
+  gpio_wakeup_disable((gpio_num_t)PWR_BTN);
 
-  // If GPIO woke us, the press edge wasn't seen by the normal CHANGE-edge
+  // If BOOT woke us, the press edge wasn't seen by the normal CHANGE-edge
   // ISR (it was masked by the sleep gate). Inject a synthetic press so the
   // classifier counts it. The release edge will be picked up normally as
-  // the user lifts off.
-  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT0) {
+  // the user lifts off. A PWR wake needs nothing: Power::poll reads the
+  // level directly on the next loop iteration.
+  esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+  if (cause == ESP_SLEEP_WAKEUP_EXT0) {
     if (digitalRead(BTN) == LOW) injectButtonEdgeNow(true);
+    markUserActivity();
+  } else if (cause == ESP_SLEEP_WAKEUP_GPIO) {
     markUserActivity();
   }
 }

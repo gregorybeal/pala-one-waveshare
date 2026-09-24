@@ -105,51 +105,39 @@ void UpdateScreen::draw() {
   // ---- Transient / single-message states -----------------------------------
 
   if (phase_ == Phase::NoCreds) {
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPDATE_NO_CREDS_L1);
-    y += 14;
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPDATE_NO_CREDS_L2);
+    y = drawWrappedText(MARGIN_X, y, D_UPDATE_NO_CREDS_L1, 14);
+    drawWrappedText(MARGIN_X, y, D_UPDATE_NO_CREDS_L2, 14);
     display.update();
     return;
   }
   if (phase_ == Phase::Connecting) {
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPDATE_CONNECTING);
+    drawWrappedText(MARGIN_X, y, D_UPDATE_CONNECTING, 14);
     display.update();
     return;
   }
   if (phase_ == Phase::ConnFailed) {
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPDATE_CONN_FAILED);
+    drawWrappedText(MARGIN_X, y, D_UPDATE_CONN_FAILED, 14);
     display.update();
     return;
   }
   if (phase_ == Phase::Checking) {
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPDATE_CHECKING);
+    drawWrappedText(MARGIN_X, y, D_UPDATE_CHECKING, 14);
     display.update();
     return;
   }
   if (phase_ == Phase::Downloading) {
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPDATE_INSTALLING);
-    y += 16;
+    y = drawWrappedText(MARGIN_X, y, D_UPDATE_INSTALLING, 16);
     char pctBuf[8];
     snprintf(pctBuf, sizeof(pctBuf), "%d%%", progress_);
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(pctBuf);
+    drawWrappedText(MARGIN_X, y, pctBuf, 14);
     display.update();
     return;
   }
   if (phase_ == Phase::RebootPrompt) {
     Font::useBold();
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPDATE_REBOOT_MSG);
-    y += 18;
+    y = drawWrappedText(MARGIN_X, y, D_UPDATE_REBOOT_MSG, 18);
     Font::useBody();
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPDATE_REBOOT_HINT);
+    drawWrappedText(MARGIN_X, y, D_UPDATE_REBOOT_HINT, 14);
     display.update();
     return;
   }
@@ -162,71 +150,48 @@ void UpdateScreen::draw() {
   if (focusItem_ >= maxItems) focusItem_ = 0;
 
   // Version line
-  u8g2.setCursor(MARGIN_X, y);
-  u8g2.print(D_UPDATE_VERSION_PREFIX FW_VERSION);
-  y += 16;
+  y = drawWrappedText(MARGIN_X, y, D_UPDATE_VERSION_PREFIX FW_VERSION, 16);
 
   // Channel label on its own line
   Font::useBody();
-  u8g2.setCursor(MARGIN_X, y);
-  u8g2.print(D_UPDATE_CHANNEL_LABEL);
-  y += 14;
+  y = drawWrappedText(MARGIN_X, y, D_UPDATE_CHANNEL_LABEL, 14);
 
-  // Channel checkboxes
-  int cx = MARGIN_X;
-
-  Font::useBody();
-  u8g2.setCursor(cx, y);
-  u8g2.print(stableChan_ ? "[x] " : "[ ] ");
-  cx += u8g2.getUTF8Width("[x] ");
-  if (focusItem_ == 0) Font::useBold(); else Font::useBody();
-  u8g2.setCursor(cx, y);
-  u8g2.print(D_UPDATE_CHAN_STABLE);
-  cx += u8g2.getUTF8Width(D_UPDATE_CHAN_STABLE);
-  Font::useBody();
-  cx += u8g2.getUTF8Width("   ");
-
-  u8g2.setCursor(cx, y);
-  u8g2.print(!stableChan_ ? "[x] " : "[ ] ");
-  cx += u8g2.getUTF8Width("[x] ");
-  if (focusItem_ == 1) Font::useBold(); else Font::useBody();
-  u8g2.setCursor(cx, y);
-  u8g2.print(D_UPDATE_CHAN_DEV);
-  y += 14;
-
+  // Channel checkboxes — one per line; side by side overflows 200px in
+  // the longer translations.
+  const int boxW = u8g2.getUTF8Width("[x] ");
+  const char* chanLabels[2] = { D_UPDATE_CHAN_STABLE, D_UPDATE_CHAN_DEV };
+  for (int i = 0; i < 2; i++) {
+    bool checked = (i == 0) ? stableChan_ : !stableChan_;
+    Font::useBody();
+    u8g2.setCursor(MARGIN_X, y);
+    u8g2.print(checked ? "[x] " : "[ ] ");
+    if (focusItem_ == i) Font::useBold(); else Font::useBody();
+    u8g2.setCursor(MARGIN_X + boxW, y);
+    u8g2.print(chanLabels[i]);
+    y += 14;
+  }
+  y += 2;
 
   // Check button
   if (focusItem_ == 2) Font::useBold(); else Font::useBody();
-  u8g2.setCursor(MARGIN_X, y);
-  u8g2.print(D_UPDATE_BTN_CHECK);
-  y += 20;
+  y = drawWrappedText(MARGIN_X, y, D_UPDATE_BTN_CHECK, 20);
 
   // Status line — shown below the check button
   Font::useBody();
   if (phase_ == Phase::ServerFail) {
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPDATE_SERVER_FAIL);
-    y += 14;
+    y = drawWrappedText(MARGIN_X, y, D_UPDATE_SERVER_FAIL, 14);
   } else if (phase_ == Phase::UpToDate) {
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPDATE_UP_TO_DATE);
-    y += 14;
+    y = drawWrappedText(MARGIN_X, y, D_UPDATE_UP_TO_DATE, 14);
   } else if (phase_ == Phase::UpdateAvailable) {
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPDATE_AVAILABLE_PREFIX);
-    u8g2.print(remoteVersion_.c_str());
-    y += 14;
+    y = drawWrappedText(MARGIN_X, y, String(D_UPDATE_AVAILABLE_PREFIX) + remoteVersion_, 14);
   } else if (phase_ == Phase::DownloadFailed) {
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPDATE_DOWNLOAD_FAILED);
-    y += 14;
+    y = drawWrappedText(MARGIN_X, y, D_UPDATE_DOWNLOAD_FAILED, 14);
   }
 
   // Install button — shown when update is available or after failed download
   if (hasInstall) {
     if (focusItem_ == 3) Font::useBold(); else Font::useBody();
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPDATE_BTN_INSTALL);
+    drawWrappedText(MARGIN_X, y, D_UPDATE_BTN_INSTALL, 14);
   }
 
   display.update();

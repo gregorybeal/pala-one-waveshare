@@ -6,6 +6,7 @@
 #include "src/pure/text_util.h"
 #include "src/storage/fs_util.h"
 #include "src/storage/library.h"
+#include "src/ui/screensavers.h"  // SCREENSAVER_BYTES
 #include "src/web/chrome.h"
 
 // ============================================================================
@@ -229,7 +230,7 @@ static void handleUploadBookStream() {
 }
 
 // ============================================================================
-//  Sleep image upload — straight binary, must be exactly 3904 bytes.
+//  Sleep image upload — straight binary, must be exactly SCREENSAVER_BYTES.
 // ============================================================================
 
 static void handleUploadSleepDone() {
@@ -289,7 +290,7 @@ static void handleUploadSleepStream() {
     size_t sz = f ? f.size() : 0;
     if (f) f.close();
 
-    if (sz != 3904) {
+    if (sz != (size_t)Screensavers::SCREENSAVER_BYTES) {
       if (FS.exists(s_sleep.tmpPath)) FS.remove(s_sleep.tmpPath);
       s_sleep.error = D_WEB_SLEEP_ERR_SIZE;
       s_sleep.ok = false;

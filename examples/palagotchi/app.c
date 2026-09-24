@@ -72,33 +72,33 @@ static void drawScreen(const PalaAPI* api, int hunger, int happiness, int cleanl
         } else {
             api->snprintf_wrap(timebuf, sizeof(timebuf), "Alive: %us", (unsigned)secs);
         }
-        api->drawTextAt(107, 24, "(x.x)", 1);
-        api->drawTextAt(107, 36, "/   \\", 1);
-        api->drawTextAt(107, 48, "R.I.P", 1);
+        api->drawTextAt(82, 40, "(x.x)", 1);
+        api->drawTextAt(82, 52, "/   \\", 1);
+        api->drawTextAt(82, 64, "R.I.P", 1);
         api->drawCenteredLarge(timebuf);
-        api->drawTextAt(55, 112, "Press to restart", 0);
+        api->drawTextAt(30, 185, "Press to restart", 0);
     } else {
         if (state == STATE_HAPPY) {
-            api->drawTextAt(107, 38, "(^.^)", 1);
-            api->drawTextAt(107, 52, "(>w<)", 1);
+            api->drawTextAt(82, 54, "(^.^)", 1);
+            api->drawTextAt(82, 68, "(>w<)", 1);
         } else if (state == STATE_HUNGRY) {
-            api->drawTextAt(107, 38, "(-w-)", 1);
-            api->drawTextAt(107, 52, "(<_>)", 1);
+            api->drawTextAt(82, 54, "(-w-)", 1);
+            api->drawTextAt(82, 68, "(<_>)", 1);
         } else if (state == STATE_DIRTY) {
-            api->drawTextAt(107, 38, "(@.@)", 1);
-            api->drawTextAt(107, 52, "(~ ~)", 1);
+            api->drawTextAt(82, 54, "(@.@)", 1);
+            api->drawTextAt(82, 68, "(~ ~)", 1);
         } else if (state == STATE_SAD) {
-            api->drawTextAt(107, 38, "(T.T)", 1);
-            api->drawTextAt(107, 52, "( _ )", 1);
+            api->drawTextAt(82, 54, "(T.T)", 1);
+            api->drawTextAt(82, 68, "( _ )", 1);
         } else {
-            api->drawTextAt(107, 38, "(-,-)", 1);
-            api->drawTextAt(107, 52, "(> <)", 1);
+            api->drawTextAt(82, 54, "(-,-)", 1);
+            api->drawTextAt(82, 68, "(> <)", 1);
         }
-        api->drawTextAt(107, 64, " \\_/ ", 1);
-        drawStatBar(api,  86, "Feed:", hunger);
-        drawStatBar(api,  98, "Play:", happiness);
-        drawStatBar(api, 110, "Clean:", cleanliness);
-        api->drawTextAt(155, 120, "Hold: exit", 0);
+        api->drawTextAt(82, 80, " \\_/ ", 1);
+        drawStatBar(api, 130, "Feed:", hunger);
+        drawStatBar(api, 146, "Play:", happiness);
+        drawStatBar(api, 162, "Clean:", cleanliness);
+        api->drawTextAt(140, 192, "Hold: exit", 0);
     }
 
     api->refreshDisplay();
@@ -109,21 +109,21 @@ static void drawActionScreen(const PalaAPI* api, ActionType action) {
     api->drawHeader("Palagotchi");
 
     if (action == ACTION_FEED) {
-        api->drawTextAt(107, 32, " \\o/ ", 0);
-        api->drawTextAt(107, 46, "(^O^)", 1);
-        api->drawTextAt(107, 60, " \\_/ ", 1);
-        api->drawTextAt(100, 78, "[.=.]", 0);
-        api->drawTextAt(75, 102, "Nom nom!", 1);
+        api->drawTextAt(82, 48, " \\o/ ", 0);
+        api->drawTextAt(82, 62, "(^O^)", 1);
+        api->drawTextAt(82, 76, " \\_/ ", 1);
+        api->drawTextAt(75, 94, "[.=.]", 0);
+        api->drawTextAt(50, 130, "Nom nom!", 1);
     } else if (action == ACTION_PLAY) {
-        api->drawTextAt(113, 32, "(o)", 0);
-        api->drawTextAt(107, 46, "(*^*)", 1);
-        api->drawTextAt(107, 60, " /|\\ ", 1);
-        api->drawTextAt(82, 102, "Wheee!", 1);
+        api->drawTextAt(88, 48, "(o)", 0);
+        api->drawTextAt(82, 62, "(*^*)", 1);
+        api->drawTextAt(82, 76, " /|\\ ", 1);
+        api->drawTextAt(57, 130, "Wheee!", 1);
     } else {
-        api->drawTextAt(107, 32, "* * *", 0);
-        api->drawTextAt(107, 46, "(o_o)", 1);
-        api->drawTextAt(107, 60, " ~*~ ", 0);
-        api->drawTextAt(76, 102, "Scrub!", 1);
+        api->drawTextAt(82, 48, "* * *", 0);
+        api->drawTextAt(82, 62, "(o_o)", 1);
+        api->drawTextAt(82, 76, " ~*~ ", 0);
+        api->drawTextAt(51, 130, "Scrub!", 1);
     }
 
     api->refreshDisplay();

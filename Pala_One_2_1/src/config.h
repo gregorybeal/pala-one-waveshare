@@ -61,15 +61,23 @@
 // The fork also needs GitHub Pages enabled on its gh-pages branch and a run
 // of the deploy workflow — see README "Pointing OTA at your own fork".
 #ifndef PALA_SITE_BASE_URL
-#define PALA_SITE_BASE_URL "https://paullagier.github.io/pala-one-firmware/"
+#define PALA_SITE_BASE_URL "https://gregorybeal.github.io/pala-one-waveshare/"
 #endif
 
 // Language selection (LANG_EN / LANG_ES_LA) and the LANG_EN fallback live in
 // src/lang/lang.h itself — included at the end of this header so every TU
 // that pulls in config.h transitively sees the D_* macros.
 
-static const int SCREEN_W = 250;
-static const int SCREEN_H = 122;
+// Panel size in pixels. The _PX macros exist so string literals (web UI
+// markup, JS) can embed the numbers via PALA_STR; everything else uses the
+// typed constants.
+#define SCREEN_W_PX 200
+#define SCREEN_H_PX 200
+#define PALA_STR_(x) #x
+#define PALA_STR(x)  PALA_STR_(x)
+
+static const int SCREEN_W = SCREEN_W_PX;
+static const int SCREEN_H = SCREEN_H_PX;
 
 static const uint8_t MAX_BOOKMARKS = 12;
 
@@ -142,11 +150,46 @@ static const bool SHOW_PROGRESS_BAR = true;
 static const bool SHOW_PAGE_NUMBER = true;
 static const bool ENABLE_DEEP_SLEEP = true;
 
+// ----------------------------------------------------------------------------
+//  Waveshare ESP32-S3-ePaper-1.54 (V2) pin map — from Waveshare's own
+//  examples (waveshareteam/ESP32-S3-ePaper-1.54, user_config.h). Plain ints,
+//  not gpio_num_t, so this header stays host-compilable.
+// ----------------------------------------------------------------------------
+
+// BOOT button: drives the whole single-button gesture UI. Active LOW, RTC
+// capable (deep-sleep wake source).
 #define BTN 0
+
+// PWR button: power only — short press sleeps / wakes, long hold powers off
+// (see src/hal/power.cpp). Active LOW, RTC capable.
+#define PWR_BTN 18
+
+// Battery latch. The PWR button powers the board up on battery, but the
+// firmware must drive this HIGH to keep it up once PWR is released; LOW cuts
+// the battery path (i.e. powers off). Held across deep sleep.
+#define VBAT_LATCH 17
+
+// Audio codec / amplifier rail. Active LOW; this firmware never uses audio,
+// so it's driven off at boot and held off through sleep.
+#define AUDIO_PWR 42
+
+// SSD1681 e-paper panel (200x200) on SPI, plus its power rail (active LOW).
+#define EPD_SCK   12
+#define EPD_MOSI  13
+#define EPD_CS    11
+#define EPD_DC    10
+#define EPD_RST   9
+#define EPD_BUSY  8
+#define EPD_PWR   6
+
+// Panel rotation handed to GxEPD2 (0..3). Picks which edge of the board is
+// "up"; tuned on hardware.
+#define EPD_ROTATION 0
+
 #define HAS_BATTERY 1
 #if HAS_BATTERY
-  #define BAT_ADC_CTRL 19
-  #define BAT_ADC_IN   20
+  // ADC1_CH3 behind a 1:2 divider; no enable pin (always connected).
+  #define BAT_ADC_IN 4
 #endif
 
 // NOTE: `#define FS LittleFS` lives in state.h AFTER all system headers, so it

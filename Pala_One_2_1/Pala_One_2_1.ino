@@ -2,31 +2,26 @@
 //  Pala One — firmware entry point.
 //
 //  The real firmware lives under src/ (hal/, pure/, storage/, ui/, web/).
-//  This file exists for two reasons:
+//  This file exists because Arduino IDE requires a .ino with the same name
+//  as the sketch folder.
 //
-//    1. Arduino IDE requires a .ino with the same name as the sketch folder.
-//    2. It provides a single place for Arduino IDE users to pick the board
-//       revision. PlatformIO users pick the env in platformio.ini instead
-//       and can leave the BOARD_V1_x defines below alone.
+//  Target hardware: Waveshare ESP32-S3-ePaper-1.54 (V2 — ESP32-S3-PICO-1-N8R8,
+//  8MB flash, 8MB PSRAM, 200x200 SSD1681 panel). Pin map in src/config.h.
 //
 //  Build options:
 //
 //    - PlatformIO (recommended):
-//        pio run -e wireless-paper-v1_2 -t upload   # V1.2 panel
-//        pio run -e wireless-paper-v1_1 -t upload   # V1.1 panel
+//        pio run -e waveshare-154-en -t upload
 //
 //    - Arduino IDE 2:
-//        1. Install the Heltec ESP32 board package (heltec_wifi_lora_32_V3).
-//        2. Install libraries: heltec-eink-modules (todd-herbert fork),
-//           Adafruit GFX, U8g2_for_Adafruit_GFX.
-//        3. Uncomment exactly one of BOARD_V1_1 / BOARD_V1_2 below.
+//        1. Install the esp32 board package (Espressif, 3.x) and pick
+//           "ESP32S3 Dev Module".
+//        2. Tools menu: Flash Size 8MB, PSRAM "OPI PSRAM", USB CDC On Boot
+//           "Enabled", Partition Scheme "Custom" (uses partitions.csv here).
+//        3. Install libraries: GxEPD2, Adafruit GFX, U8g2_for_Adafruit_GFX,
+//           ArduinoJson, Improv-WiFi-Library.
 //        4. Compile and upload.
 // ============================================================================
-
-// ── Board selection: uncomment the line that matches your hardware ──────────
-// #define BOARD_V1_1
-// #define BOARD_V1_2
-// ────────────────────────────────────────────────────────────────────────────
 
 // ── Language selection: uncomment exactly one (Arduino IDE) ─────────────────
 //   PlatformIO users pick the env in platformio.ini (-en / -es leaf envs)
@@ -46,28 +41,10 @@
 // #define WEB_THEME_DARK
 // ────────────────────────────────────────────────────────────────────────────
 
-// When built with PlatformIO, WIRELESS_PAPER + DISPLAY_V1_x come from
-// build_flags and the BOARD_V1_x macros above stay commented out. When
-// built with Arduino IDE, the macros above drive the same defines so the
-// rest of the firmware sees one consistent set of feature flags.
-#if defined(BOARD_V1_1)
-  #ifndef WIRELESS_PAPER
-    #define WIRELESS_PAPER
-  #endif
-  #ifndef DISPLAY_V1_1
-    #define DISPLAY_V1_1
-  #endif
-#elif defined(BOARD_V1_2)
-  #ifndef WIRELESS_PAPER
-    #define WIRELESS_PAPER
-  #endif
-  #ifndef DISPLAY_V1_2
-    #define DISPLAY_V1_2
-  #endif
-#endif
-
-#if !defined(DISPLAY_V1_1) && !defined(DISPLAY_V1_2)
-  #error "Board not selected. Arduino IDE: uncomment BOARD_V1_1 or BOARD_V1_2 in Pala_One_2_1.ino. PlatformIO: build with -e wireless-paper-v1_1 or -e wireless-paper-v1_2."
+// PlatformIO passes BOARD_WAVESHARE_154 in build_flags; Arduino IDE builds
+// get it here so the rest of the firmware sees one consistent flag set.
+#ifndef BOARD_WAVESHARE_154
+  #define BOARD_WAVESHARE_154
 #endif
 
 #include <Arduino.h>
@@ -78,6 +55,7 @@
 #include "src/hal/battery.h"
 #include "src/hal/display.h"
 #include "src/hal/input.h"
+#include "src/hal/power.h"
 #include "src/hal/wifi_provisioning.h"
 #include "src/pure/hashing.h"
 #include "src/storage/app_catalog.h"
@@ -138,6 +116,10 @@ Screen* g_currentScreen = &g_libraryScreen;
 // ============================================================================
 // cppcheck-suppress unusedFunction
 void setup() {
+  // Latch battery power before anything else: on battery the board only
+  // stays up past the PWR press once VBAT_LATCH is driven high.
+  Power::earlyInit();
+
   Serial.begin(115200);
   delay(200);
   Serial.printf("[boot] wake cause: %d\n", esp_sleep_get_wakeup_cause());
@@ -146,7 +128,7 @@ void setup() {
   pinMode(BTN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(BTN), btnISR, CHANGE);
 
-  // Button held through ext0 wake: its down-edge predates the ISR, so seed
+  // Button held through a deep-sleep wake: its down-edge predates the ISR, so seed
   // the press state manually. Pass 0 (not millis()) to credit the full boot
   // time; millis() ≈ 200 here (after delay(200)) would shorten the hold and
   // misclassify a Long press as Short.
@@ -158,7 +140,6 @@ void setup() {
 
 #if HAS_BATTERY
   adcSetupOnce();
-  pinMode(BAT_ADC_CTRL, INPUT);
   updateBatteryCached(true);
 #endif
 
@@ -175,15 +156,22 @@ void setup() {
   //   (b) no-screensaver mode is on and we were reading — the last reader
   //       page sits cleanly on the panel; a clear would briefly flash white
   //       before the page redraws.
-  // On a fresh boot (not ext0 wake) always clear, regardless of lock state.
-  bool wokeFromSleep = (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT0);
+  // On a fresh boot (not a button wake) always clear, regardless of lock
+  // state. Deep sleep wakes on BOOT or PWR through ext1.
+  bool wokeFromSleep = (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1);
   bool wereReading   = (prefs.getString("wake_path", "").length() > 0);
-  display.fastmodeOff();
   bool skipClear = wokeFromSleep &&
                    (Lock::isLocked() ||
                     (Sleep::noScreensaver() && wereReading));
+  display.begin(/*initial=*/!skipClear);
+  display.fastmodeOff();
   if (!skipClear) {
     display.clear();
+  } else {
+    // The controller lost its RAM in deep sleep, so a partial refresh has no
+    // base image to diff against. Make the first real frame a full one.
+    forceNextRenderFull();
+    forceNextMenuFrameFull();
   }
 
   if (!fsBegin()) {
@@ -261,6 +249,23 @@ void setup() {
 //  Main loop
 // ============================================================================
 void loop() {
+  // PWR button: hold = power off (always honoured — it's the user's hard
+  // override); short press = sleep now, on screens that allow sleeping
+  // (not mid-upload / mid-OTA).
+  switch (Power::poll()) {
+    case Power::ButtonEvent::Hold:
+      Sleep::powerOff();
+      return;
+    case Power::ButtonEvent::Short:
+      if (g_currentScreen->allowSleep() && !WifiProvisioning::isActive()) {
+        Sleep::enter();
+        return;
+      }
+      break;
+    case Power::ButtonEvent::None:
+      break;
+  }
+
   g_btns.poll();
   maybeRecoverFromIsrOverflow();
 
@@ -370,7 +375,7 @@ void loop() {
   // release edge after this iter's `poll()` ran but before we reach this
   // gate — `clickCount_` is still 0 at that instant, but the edge is
   // sitting in the ring buffer waiting to be drained. Without the check we
-  // sleep through it; ext0 (level-low) doesn't fire on a release, so we'd
+  // sleep through it; the BOOT wake (level-low) doesn't fire on a release, so we'd
   // only re-process the edge on the next timer wake (~150ms later in the
   // worst case under the bound below).
   if (g_currentScreen->allowSleep()

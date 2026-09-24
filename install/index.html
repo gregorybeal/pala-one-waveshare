@@ -164,39 +164,18 @@
   </p>
 
   <div class="variant">
-    <h3>V1.2 board</h3>
-    <p>Newer Heltec Wireless Paper. If your board's silkscreen says <code>V1.2</code>, pick this.</p>
+    <h3>Waveshare ESP32-S3-ePaper-1.54</h3>
+    <p>The V2 board (ESP32-S3-PICO-1-N8R8, 8MB flash). Plug it in over USB-C and pick a language.</p>
     <div class="lang-row">
-      <esp-web-install-button manifest="manifest-v1_2-en.json">
-        <button slot="activate">Install V1.2 — English</button>
+      <esp-web-install-button manifest="manifest-ws154-en.json">
+        <button slot="activate">Install — English</button>
         <span slot="unsupported">
           Your browser doesn't support Web Serial. Use desktop Chrome, Edge, or Opera.
         </span>
         <span slot="not-allowed">Open this page over HTTPS.</span>
       </esp-web-install-button>
-      <esp-web-install-button manifest="manifest-v1_2-es.json">
-        <button slot="activate">Install V1.2 — Español</button>
-        <span slot="unsupported">
-          Your browser doesn't support Web Serial. Use desktop Chrome, Edge, or Opera.
-        </span>
-        <span slot="not-allowed">Open this page over HTTPS.</span>
-      </esp-web-install-button>
-    </div>
-  </div>
-
-  <div class="variant">
-    <h3>V1.1 board</h3>
-    <p>Older revision of the Heltec Wireless Paper.</p>
-    <div class="lang-row">
-      <esp-web-install-button manifest="manifest-v1_1-en.json">
-        <button slot="activate">Install V1.1 — English</button>
-        <span slot="unsupported">
-          Your browser doesn't support Web Serial. Use desktop Chrome, Edge, or Opera.
-        </span>
-        <span slot="not-allowed">Open this page over HTTPS.</span>
-      </esp-web-install-button>
-      <esp-web-install-button manifest="manifest-v1_1-es.json">
-        <button slot="activate">Install V1.1 — Español</button>
+      <esp-web-install-button manifest="manifest-ws154-es.json">
+        <button slot="activate">Install — Español</button>
         <span slot="unsupported">
           Your browser doesn't support Web Serial. Use desktop Chrome, Edge, or Opera.
         </span>
@@ -206,7 +185,7 @@
   </div>
 
   <p class="note">
-    Not sure which version you have? Flashing the wrong one won't brick the board — the e-ink panel just won't draw correctly. Try the other variant if the screen looks wrong after the first boot.
+    If the board doesn't show up as a serial port, hold <strong>BOOT</strong>, tap <strong>PWR</strong> (or replug USB), then release BOOT to force download mode and try again.
   </p>
 
   <h2 id="how-to-install">How to install</h2>
@@ -275,11 +254,11 @@
     </li>
     <li>
       <strong>The install dialog stops or fails partway through.</strong>
-      Close the dialog, reconnect the board, and try the same install button again. Make sure you selected the correct V1.1 or V1.2 variant.
+      Close the dialog, reconnect the board, and try the same install button again.
     </li>
     <li>
       <strong>The screen looks wrong after the first boot.</strong>
-      Flash the other board variant (V1.1 or V1.2) and reboot. The wrong firmware variant will not brick the board, but the display may not render correctly.
+      This firmware only supports the Waveshare ESP32-S3-ePaper-1.54 (V2). Other boards will not render correctly.
     </li>
     <li>
       <strong>You're upgrading from an older firmware and want to keep your data.</strong>
