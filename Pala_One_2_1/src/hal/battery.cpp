@@ -41,10 +41,6 @@ static inline float clampf(float x, float lo, float hi) {
 }
 
 static uint32_t readAdcMilliVoltsStable() {
-  pinMode(BAT_ADC_CTRL, OUTPUT);
-  digitalWrite(BAT_ADC_CTRL, LOW);
-  delay(12);
-
   (void)analogReadMilliVolts(BAT_ADC_IN);
   delay(3);
   (void)analogReadMilliVolts(BAT_ADC_IN);
@@ -58,7 +54,6 @@ static uint32_t readAdcMilliVoltsStable() {
     delay(2);
   }
 
-  pinMode(BAT_ADC_CTRL, INPUT);
   qsort(vals, N, sizeof(vals[0]), cmpUint16);
 
   uint32_t sum = 0;

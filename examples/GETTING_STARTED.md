@@ -4,7 +4,7 @@ Apps for the Pala One are self-contained position-independent C binaries uploade
 
 ## Prerequisites
 
-- **xtensa-esp32s3 toolchain** — installed automatically by Arduino IDE when you add the Heltec ESP32 board package. The Makefile looks for it under `~/.arduino15/packages/esp32/tools/esp-x32/`. Override `TOOLCHAIN` on the `make` command line if yours is elsewhere.
+- **xtensa-esp32s3 toolchain** — installed automatically by Arduino IDE when you add the Espressif esp32 board package. The Makefile looks for it under `~/.arduino15/packages/esp32/tools/esp-x32/`. Override `TOOLCHAIN` on the `make` command line if yours is elsewhere.
 - **Python 3** — used by the post-build step that patches the binary header.
 - **`make`** — standard GNU make.
 
@@ -85,7 +85,7 @@ For an exit-while-held pattern (button held → exit immediately, no release nee
 
 ## Display
 
-The e-ink panel is **250 × 122 pixels**. The coordinate origin (0, 0) is the top-left corner; y increases downward. Text y coordinates are baselines, not tops.
+The e-ink panel is **200 × 200 pixels** (square). The coordinate origin (0, 0) is the top-left corner; y increases downward. Text y coordinates are baselines, not tops.
 
 `drawHeader()` occupies roughly the top 18 pixels. Draw content below y ≈ 20 to avoid overlap.
 

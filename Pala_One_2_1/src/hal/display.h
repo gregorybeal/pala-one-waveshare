@@ -8,27 +8,26 @@
 #include "src/state.h"
 
 // ============================================================================
-//  Display adapter — wraps the Heltec EInk display so Adafruit_GFX can draw
-//  to it. Rotates the screen 180° because of the panel orientation.
+//  Display adapter — lets Adafruit_GFX (and u8g2 on top of it) draw into the
+//  panel's offscreen buffer. Rotation is applied by the panel driver
+//  (EPD_ROTATION in config.h), so coordinates pass straight through.
+//  Colour convention: 1 = ink (black), 0 = paper (white).
 // ============================================================================
-class HeltecGFXAdapter : public Adafruit_GFX {
+class EpdGFXAdapter : public Adafruit_GFX {
 public:
-  explicit HeltecGFXAdapter(EInkDisplay& d)
+  explicit EpdGFXAdapter(EInkDisplay& d)
     : Adafruit_GFX(SCREEN_W, SCREEN_H), disp(d) {}
 
   void drawPixel(int16_t x, int16_t y, uint16_t color) override {
     if (x < 0 || y < 0 || x >= SCREEN_W || y >= SCREEN_H) return;
-    uint16_t c = color ? BLACK : WHITE;
-    int16_t xx = (SCREEN_W - 1) - x;
-    int16_t yy = (SCREEN_H - 1) - y;
-    disp.drawPixel(xx, yy, c);
+    disp.drawPixel(x, y, color ? GxEPD_BLACK : GxEPD_WHITE);
   }
 
 private:
   EInkDisplay& disp;
 };
 
-extern HeltecGFXAdapter gfx;
+extern EpdGFXAdapter gfx;
 extern U8G2_FOR_ADAFRUIT_GFX u8g2;
 
 // ============================================================================

@@ -41,6 +41,14 @@ int menuLineH();
 
 void splitListLabelForDisplay(const String& in, int maxWidth, String& line1, String& line2);
 
+// Print `text` at (x, yBaseline) in the current font, wrapping onto a second
+// line (via splitListLabelForDisplay) if it doesn't fit before the right
+// margin; a second line that still doesn't fit is truncated. Returns the
+// baseline for whatever comes next: yBaseline + lineH per line drawn. Use for
+// status text on the 200px-wide panel where a message, SSID or URL can run
+// past the edge.
+int drawWrappedText(int x, int yBaseline, const String& text, int lineH);
+
 // ============================================================================
 //  Scrollable list widget
 //

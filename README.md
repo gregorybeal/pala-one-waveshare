@@ -1,7 +1,9 @@
 <img width="1892" height="1053" alt="palaOne" src="https://github.com/user-attachments/assets/0fdef5ba-eabd-4b71-9a0c-4c1dc78a4bee" />
 
-# pala-one-firmware
-Pala One — A tiny E-Ink reader project by Paul Lagier
+# pala-one-waveshare
+Pala One — A tiny E-Ink reader project by Paul Lagier, ported to the **Waveshare ESP32-S3-ePaper-1.54**.
+
+This is a hardware fork of [PaulLagier/pala-one-firmware](https://github.com/PaulLagier/pala-one-firmware), which targets the Heltec Wireless Paper. This repository builds only for the Waveshare board; see [Hardware](#hardware) for what changed.
 
 The goal of the project was to create a simple, distraction-free reading device that feels minimal, portable and easy to build while still looking and behaving more like a real product than a typical DIY electronics project.
 
@@ -21,45 +23,33 @@ https://ko-fi.com/s/e14ed892ea
 
 ## Install (no toolchain needed)
 
-[Web Installer](https://gregorybeal.github.io/pala-one-firmware/)
+[Web Installer](https://gregorybeal.github.io/pala-one-waveshare/)
 
-The easiest way to flash a board is via the web installer. Plug your Heltec Wireless Paper into a desktop computer running Chrome, Edge, or Opera, then open the installer page and pick a channel:
+The easiest way to flash a board is via the web installer. Plug your Waveshare ESP32-S3-ePaper-1.54 into a desktop computer running Chrome, Edge, or Opera, then open the installer page and pick a channel:
 
-- **Stable** ([`/stable/`](https://gregorybeal.github.io/pala-one-firmware/stable/)) — latest tagged release (`vX.Y.Z`). Use this unless you have a reason not to.
-- **Development** ([`/dev/`](https://gregorybeal.github.io/pala-one-firmware/dev/)) — latest build from `dev`; new features, may break.
+- **Stable** ([`/stable/`](https://gregorybeal.github.io/pala-one-waveshare/stable/)) — latest tagged release (`vX.Y.Z`). Use this unless you have a reason not to.
+- **Development** ([`/dev/`](https://gregorybeal.github.io/pala-one-waveshare/dev/)) — latest build from `dev`; new features, may break.
 
-Each channel page lists both display revisions (V1.1 / V1.2) and both languages (English / Spanish-LA) — four install buttons total. Pick the one that matches your board + language and click **Install**. The installer keeps existing reading progress, bookmarks, and uploaded books across re-flashes.
+Each channel page has one install button per language (English / Spanish-LA). Pick yours and click **Install**. The installer keeps existing reading progress, bookmarks, and uploaded books across re-flashes.
 
-## Board Versions
+## Hardware
 
-There are currently two supported Heltec Wireless Paper versions:
-- `Heltec V1.1`
-- `Heltec V1.2`
+Target: **Waveshare ESP32-S3-ePaper-1.54, V2** — ESP32-S3-PICO-1-N8R8 (8MB flash, 8MB PSRAM), 1.54" 200×200 black/white e-paper (SSD1681), BOOT and PWR buttons, Li-ion battery connector. The V1 board (4MB flash) is not supported: the partition table needs 8MB.
 
-The board version is usually printed on the back of the PCB.
+| Function | GPIO | Notes |
+|---|---|---|
+| E-paper SPI | SCK 12, MOSI 13, CS 11, DC 10, RST 9, BUSY 8 | driven by [GxEPD2](https://github.com/ZinggJM/GxEPD2) (`GxEPD2_154_D67`) |
+| E-paper power | 6 | active low |
+| Battery latch | 17 | held high to stay on after PWR is released on battery |
+| Audio power | 42 | active low; kept off |
+| BOOT button | 0 | the reader's single gesture button |
+| PWR button | 18 | power: tap = sleep / wake, hold 2 s = power off |
+| Battery ADC | 4 | 1:2 divider |
 
-Pick your board's revision in the build step below — either by uncommenting the matching `#define` at the top of `Pala_One_2_1/Pala_One_2_1.ino` (Arduino IDE), or by selecting the matching env (PlatformIO).
+Pin map is in `Pala_One_2_1/src/config.h`, taken from Waveshare's own examples ([waveshareteam/ESP32-S3-ePaper-1.54](https://github.com/waveshareteam/ESP32-S3-ePaper-1.54)).
 
+**Buttons.** Everything the upstream firmware does with its single button (clicks, holds, click-then-hold) is on **BOOT**. **PWR** is power only: a tap puts the device to sleep (or wakes it), a 2-second hold powers it off. On USB power the board can't actually cut its own power, so "off" becomes a deep sleep that only PWR wakes.
 
-### Multiple networks
-
-Up to **5** networks can be saved, so the device works at home, at work and off a phone hotspot without being re-provisioned each time. Improv adds to that list rather than replacing it, and networks can also be added from the device's own web UI under **Wi-Fi** — no USB cable needed once you can reach the page at all (the SoftAP fallback is always available).
-
-Which one it joins is decided automatically, and the list is **not** a priority order:
-
-1. the network that connected last time, tried immediately — no scan, so being at home is as quick as it was with a single stored network
-2. failing that, a scan, then the saved networks actually on the air, strongest first
-3. failing *that*, the saved networks the scan did not report, tried directly in list order
-
-Step 3 exists because a scan cannot see everything. A **hidden** access point never announces its SSID, so it can never be matched against the saved list however close you are standing to it — the only way in is to ask for it by name. The same goes for a network the scan missed for duller reasons: a weak or busy channel, or the scan being cut short. Reaching the access-point fallback therefore means every saved network was actually attempted, not merely that none of them showed up in a scan.
-
-The cost is that being genuinely away from all of them takes one association timeout per saved network before the SoftAP appears, instead of failing as soon as the scan comes back. That only applies in the case that was going to fail anyway.
-
-Between every step the radio is given a moment to go quiet. `WiFi.disconnect()` only *requests* a disconnect, and a scan or association issued immediately afterwards is rejected by the driver with the station still connecting — which looks exactly like a network that failed, so a working network would be skipped without its credentials ever being applied.
-
-Adding a network whose name is already saved replaces that network's password instead of creating a duplicate; adding a sixth network evicts the oldest.
-
-Saved passwords are never displayed back in the web UI — only whether a network has one.
 
 ## OTA firmware updates
 
@@ -91,7 +81,7 @@ The firmware ships with two built-in languages, selected at build time:
 - `LANG_EN` — English (default)
 - `LANG_ES_LA` — Spanish (Latin America)
 
-One language per binary. PlatformIO users pick a leaf env that already encodes both the board and the language (`wireless-paper-v1_2-en`, `wireless-paper-v1_2-es`, `wireless-paper-v1_1-en`, `wireless-paper-v1_1-es`). Arduino IDE users uncomment one of `LANG_EN` / `LANG_ES_LA` near the top of `Pala_One_2_1/Pala_One_2_1.ino`, alongside the board `#define`. If nothing is set, the firmware compiles with `LANG_EN` and a `#pragma message` warning.
+One language per binary. PlatformIO users pick a leaf env that encodes the language (`waveshare-154-en`, `waveshare-154-es`). Arduino IDE users uncomment one of `LANG_EN` / `LANG_ES_LA` near the top of `Pala_One_2_1/Pala_One_2_1.ino`. If nothing is set, the firmware compiles with `LANG_EN` and a `#pragma message` warning.
 
 Strings live in `Pala_One_2_1/src/lang/` — `en.h` is the canonical key set; `es_la.h` mirrors it. Adding a new language is additive: clone one of the headers, add the include arm in `src/lang/lang.h`, and add two leaf envs in `platformio.ini` (one per board). See `src/lang/lang.h` for the authoring rules (key set, placeholders, JS-confirm quoting constraint).
 
@@ -344,7 +334,7 @@ make
 
 If you improve the firmware, add features or fix bugs, feel free to open a pull request.
 Please clearly mention:
-- which board version(s) you tested on (V1.1, V1.2, or both)
+- that you tested on a Waveshare ESP32-S3-ePaper-1.54 (V2)
 - what was changed
 - how it was tested
 
@@ -358,10 +348,8 @@ The same sources build under either toolchain.
 1. Install [PlatformIO Core](https://platformio.org/install/cli) (CLI) or the PlatformIO IDE extension for VS Code.
 2. From the repo root:
    ```
-   pio run -e wireless-paper-v1_2-en -t upload    # V1.2 panel, English
-   pio run -e wireless-paper-v1_2-es -t upload    # V1.2 panel, Spanish-LA
-   pio run -e wireless-paper-v1_1-en -t upload    # V1.1 panel, English
-   pio run -e wireless-paper-v1_1-es -t upload    # V1.1 panel, Spanish-LA
+   pio run -e waveshare-154-en -t upload    # English
+   pio run -e waveshare-154-es -t upload    # Spanish-LA
    ```
 3. Serial monitor:
    ```
@@ -375,13 +363,14 @@ Both envs share libraries and partition table via `platformio.ini`. The PIO buil
 
 ### Arduino IDE 2 (outdated)
 
-1. Install the **esp32 by Espressif Systems** board package (Boards Manager) and select the **Heltec WiFi LoRa 32 V3** board.
+1. Install the **esp32 by Espressif Systems** board package (Boards Manager, 3.x) and select **ESP32S3 Dev Module**. Under Tools set Flash Size **8MB**, PSRAM **OPI PSRAM**, USB CDC On Boot **Enabled**.
 2. Install these libraries via Library Manager (or by URL):
-   - [`heltec-eink-modules`](https://github.com/todd-herbert/heltec-eink-modules) (todd-herbert fork)
+   - **GxEPD2** (ZinggJM)
    - **Adafruit GFX Library** (Adafruit)
    - **U8g2_for_Adafruit_GFX** (olikraus)
    - [`Improv-WiFi-Library`](https://github.com/jnthas/Improv-WiFi-Library) (jnthas) — serial Wi-Fi provisioning; PlatformIO installs it automatically, Arduino IDE users add it by URL
-3. Open `Pala_One_2_1/Pala_One_2_1.ino`. Uncomment exactly one of `BOARD_V1_1` / `BOARD_V1_2` at the top.
+   - **ArduinoJson** (bblanchon)
+3. Open `Pala_One_2_1/Pala_One_2_1.ino`.
 4. Tools → Partition Scheme → **Custom** (the sketch ships its own `partitions.csv`).
 5. Verify / Upload.
 
@@ -390,7 +379,7 @@ Arduino IDE / host-test builds skip the script and fall back to `"dev"` and `"un
 
 ### Web Installer site (channels & CI)
 
-The [web installer](https://gregorybeal.github.io/pala-one-firmware/) is published to the `gh-pages` branch by [`.github/workflows/deploy-installer.yml`](.github/workflows/deploy-installer.yml). Two channels live side-by-side and never overwrite each other:
+The [web installer](https://gregorybeal.github.io/pala-one-waveshare/) is published to the `gh-pages` branch by [`.github/workflows/deploy-installer.yml`](.github/workflows/deploy-installer.yml). Two channels live side-by-side and never overwrite each other:
 
 | Trigger                       | Channel  | URL path     | `DEBUG_BUILD` | Manifest version |
 |-------------------------------|----------|--------------|---------------|------------------|
@@ -409,12 +398,10 @@ Source HTML/manifests live in `install/` on the normal branches. The `gh-pages` 
 
 To iterate on the installer page (HTML, Improv Serial provisioning flow, manifest tweaks) without CI:
 
-1. Build all four leaf envs at least once so the firmware bins exist:
+1. Build both leaf envs at least once so the firmware bins exist:
    ```
-   pio run -e wireless-paper-v1_1-en
-   pio run -e wireless-paper-v1_1-es
-   pio run -e wireless-paper-v1_2-en
-   pio run -e wireless-paper-v1_2-es
+   pio run -e waveshare-154-en
+   pio run -e waveshare-154-es
    ```
 2. Assemble the bundle. Two layouts are supported:
    ```
@@ -433,7 +420,7 @@ Optional flags: `--version <string>` to label the manifest, `--out <dir>` to wri
 
 ```
 Pala_One_2_1/
-├── Pala_One_2_1.ino     # Sketch entry: board selection + setup()/loop()
+├── Pala_One_2_1.ino     # Sketch entry: setup()/loop()
 ├── pala_api.h           # Public app API (firmware ↔ app ABI)
 ├── pala_app.h           # PalaAppHeader + version constants
 ├── partitions.csv       # ESP32 partition table
@@ -441,7 +428,7 @@ Pala_One_2_1/
     ├── config.h         # Compile-time constants
     ├── state.{h,cpp}    # Globals (display, WiFi server, prefs)
     ├── pure/            # Pure C++, no Arduino headers — host-testable
-    ├── hal/             # Hardware adapters (display, battery, input)
+    ├── hal/             # Hardware adapters (e-paper, display, power, battery, input)
     ├── storage/         # KV store + on-disk persistence
     ├── ui/              # Screens, fonts, sleep, toasts, widgets
     │   └── screens/     # One file per screen

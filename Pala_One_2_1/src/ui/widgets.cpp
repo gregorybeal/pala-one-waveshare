@@ -163,3 +163,17 @@ void splitListLabelForDisplay(const String& in, int maxWidth, String& line1, Str
     line2.remove(line2.length() - 1);
   }
 }
+
+int drawWrappedText(int x, int yBaseline, const String& text, int lineH) {
+  String line1, line2;
+  splitListLabelForDisplay(text, SCREEN_W - MARGIN_X - x, line1, line2);
+  u8g2.setCursor(x, yBaseline);
+  u8g2.print(line1.c_str());
+  yBaseline += lineH;
+  if (line2.length() > 0) {
+    u8g2.setCursor(x, yBaseline);
+    u8g2.print(line2.c_str());
+    yBaseline += lineH;
+  }
+  return yBaseline;
+}

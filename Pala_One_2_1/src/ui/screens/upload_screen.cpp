@@ -24,21 +24,14 @@ static void drawConnecting(const String& ssid) {
   int y = drawSectionHeader(D_UPLOAD_HEADER);
 
   Font::useBold();
-  u8g2.setCursor(MARGIN_X, y);
-  u8g2.print(D_UPLOAD_CONNECTING);
-  y += 14;
+  y = drawWrappedText(MARGIN_X, y, D_UPLOAD_CONNECTING, 14);
 
   Font::useBody();
-  u8g2.setCursor(MARGIN_X, y);
-  u8g2.print(ssid.c_str());
-  y += 18;
+  y = drawWrappedText(MARGIN_X, y, ssid, 18);
 
   Font::useBody();
-  u8g2.setCursor(MARGIN_X, y);
-  u8g2.print(D_UPLOAD_HOTSPOT_HINT_L1);
-  y += 14;
-  u8g2.setCursor(MARGIN_X, y);
-  u8g2.print(D_UPLOAD_HOTSPOT_HINT_L2);
+  y = drawWrappedText(MARGIN_X, y, D_UPLOAD_HOTSPOT_HINT_L1, 14);
+  drawWrappedText(MARGIN_X, y, D_UPLOAD_HOTSPOT_HINT_L2, 14);
 
   display.update();
 }
@@ -50,58 +43,38 @@ void UploadScreen::draw() {
 
   if (net_.mode == WifiMode::Station) {
     Font::useBold();
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPLOAD_CONNECTED);
-    y += 14;
+    y = drawWrappedText(MARGIN_X, y, D_UPLOAD_CONNECTED, 14);
 
     Font::useBody();
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(net_.staSsid.c_str());
-    y += 18;
+    y = drawWrappedText(MARGIN_X, y, net_.staSsid, 18);
 
     Font::useBold();
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPLOAD_OPEN);
-    y += 14;
+    y = drawWrappedText(MARGIN_X, y, D_UPLOAD_OPEN, 14);
 
     Font::useBody();
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(net_.primaryUrl.c_str());
-    y += 14;
+    y = drawWrappedText(MARGIN_X, y, net_.primaryUrl, 14);
 
     if (net_.fallbackUrl.length() > 0) {
-      u8g2.setCursor(MARGIN_X, y);
-      u8g2.print(net_.fallbackUrl.c_str());
+      drawWrappedText(MARGIN_X, y, net_.fallbackUrl, 14);
     }
   } else {
     Font::useBold();
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPLOAD_WIFI);
-    y += 14;
+    y = drawWrappedText(MARGIN_X, y, D_UPLOAD_WIFI, 14);
 
     Font::useBody();
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(net_.apSsid);
-    y += 16;
+    y = drawWrappedText(MARGIN_X, y, net_.apSsid, 16);
 
     Font::useBold();
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPLOAD_PASSWORD);
-    y += 14;
+    y = drawWrappedText(MARGIN_X, y, D_UPLOAD_PASSWORD, 14);
 
     Font::useBody();
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(net_.apPass);
-    y += 16;
+    y = drawWrappedText(MARGIN_X, y, net_.apPass, 16);
 
     Font::useBold();
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(D_UPLOAD_OPEN);
-    y += 14;
+    y = drawWrappedText(MARGIN_X, y, D_UPLOAD_OPEN, 14);
 
     Font::useBody();
-    u8g2.setCursor(MARGIN_X, y);
-    u8g2.print(net_.primaryUrl.c_str());
+    drawWrappedText(MARGIN_X, y, net_.primaryUrl, 14);
   }
 
   display.update();

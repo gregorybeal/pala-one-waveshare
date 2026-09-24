@@ -6,8 +6,8 @@
 //  translation unit sees the D_* string-literal macros without an extra
 //  per-file include.
 //
-//  Selection mechanism mirrors src/config.h's BOARD_V1_X / DISPLAY_V1_X
-//  pattern: a single LANG_* build flag picks one per-language header.
+//  Selection mechanism: a single LANG_* build flag picks one per-language
+//  header.
 //    PlatformIO: -D LANG_EN / -D LANG_ES_LA in build_flags.
 //    Arduino IDE: uncomment LANG_EN or LANG_ES_LA in Pala_One_2_1.ino.
 //

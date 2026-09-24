@@ -18,11 +18,10 @@ static constexpr const char* kOtaBaseUrl = PALA_SITE_BASE_URL;
 // How long to wait for the next data chunk before aborting the download.
 static constexpr uint32_t kDownloadStallMs = 30000;
 
-#if defined(DISPLAY_V1_2)
-  static constexpr const char* kBoardToken = "v1_2";
-#else
-  static constexpr const char* kBoardToken = "v1_1";
-#endif
+// Names this board in the manifest / firmware filenames. Distinct from the
+// upstream Heltec tokens (v1_1 / v1_2) so a device can never be pointed at
+// an image built for different hardware.
+static constexpr const char* kBoardToken = "ws154";
 
 #if defined(LANG_ES_LA)
   static constexpr const char* kLangToken = "es";
